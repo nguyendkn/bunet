@@ -1,10 +1,9 @@
 import { Project, SyntaxKind } from 'ts-morph'
 import { ScanSourceFiles } from './ScanSourceFiles'
 import type { SourceFile } from '../Types/SourceFile'
-import { PatchControllers } from './PatchRegistry'
+import { PatchControllers, PatchDbContexts } from './PatchRegistry'
 import { Registry } from '../Builder/Registries'
-import { ApiController } from '../Decorators/HttpRoutes'
-import { ControllerBase } from '../Controllers/ControllerBase'
+import { ControllerBase, ApiController, DbContext } from '@/bunet/core'
 
 // Tập hợp lưu trữ các file đã được quét để tránh xử lý lặp lại
 const scanned = new Set<string>()
@@ -33,20 +32,8 @@ export function ScanImplements(rootPath: string, extention: string, files: strin
   project.getSourceFiles().forEach((sourceFile) => {
     // Lấy danh sách các class trong file hiện tại
     sourceFile.getClasses().forEach((classDeclaration) => {
-      // Kiểm tra nếu class có decorator @ApiController
-      const hasApiControllerDecorator = classDeclaration.getDecorators().some((decorator) => {
-        const decoratorName = decorator.getName()
-        return decoratorName === ApiController.name
-      })
-
-      // Nếu không có @ApiController thì bỏ qua class này
-      if (!hasApiControllerDecorator) {
-        return
-      }
-
       // Lấy các "heritage clause" (extends, implements) của class
       const heritageClauses = classDeclaration.getHeritageClauses()
-
       heritageClauses.forEach((clause) => {
         // Kiểm tra nếu class kế thừa (extends) từ một class khác
         if (clause.getToken() === SyntaxKind.ExtendsKeyword) {
@@ -55,6 +42,17 @@ export function ScanImplements(rootPath: string, extention: string, files: strin
           // Kiểm tra nếu class kế thừa từ "ControllerBase"
           types.forEach((type) => {
             if (type.getText() === ControllerBase.name) {
+              // Kiểm tra nếu class có decorator @ApiController
+              const hasApiControllerDecorator = classDeclaration.getDecorators().some((decorator) => {
+                const decoratorName = decorator.getName()
+                return decoratorName === ApiController.name
+              })
+
+              // Nếu không có @ApiController thì bỏ qua class này
+              if (!hasApiControllerDecorator) {
+                return
+              }
+
               const path = sourceFile.getFilePath()
 
               // Kiểm tra nếu file đã được xử lý
@@ -72,6 +70,26 @@ export function ScanImplements(rootPath: string, extention: string, files: strin
 
                 // Áp dụng các thay đổi lên controller (nếu cần)
                 PatchControllers(sourceFile, classDeclaration)
+              }
+            }
+            if (type.getText() === DbContext.name) {
+              const path = sourceFile.getFilePath()
+
+              // Kiểm tra nếu file đã được xử lý
+              if (!scanned.has(path)) {
+                // Đánh dấu file đã được quét
+                scanned.add(path)
+
+                // Thêm file vào danh sách kết quả với thông tin chi tiết
+                projectSourceFiles.push({
+                  path, // Đường dẫn của file
+                  content: sourceFile.getFullText(), // Nội dung đầy đủ của file
+                  type: 'DbContext', // Loại file (DbContext)
+                  dependencies: [] // Danh sách dependencies (có thể cập nhật thêm sau)
+                })
+
+                // Áp dụng các thay đổi lên DbContext (nếu cần)
+                PatchDbContexts(sourceFile, classDeclaration)
               }
             }
           })

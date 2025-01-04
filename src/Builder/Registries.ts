@@ -1,28 +1,38 @@
-import type { SourceFile } from "ts-morph";
+import type { SourceFile } from 'ts-morph'
+import { DbContext } from '@/bunet/core'
 
-export type MethodType = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export type MethodType = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 
-export type Action = {
-  Name: string;
-  Route: string;
-  Controller: string;
-  Method: MethodType;
-  Handler: (request: Request) => Promise<Response>;
-};
+export type ControllerActionType = {
+  Name: string
+  Route: string
+  Controller: string
+  Method: MethodType
+  Handler: (request: Request) => Promise<Response>
+}
 
-export type Controller = {
-  Name: string;
-  Path: string;
-  Route: string;
-  Content: string;
-  SourceFile: SourceFile;
-  Actions?: Action[];
-};
+export type ControllerType = {
+  Name: string
+  Path: string
+  Route: string
+  Content: string
+  SourceFile: SourceFile
+  Actions?: ControllerActionType[]
+}
+
+export type DbContextType = {
+  Name: string
+  Path: string
+  Content: string
+  SourceFile: SourceFile
+}
 
 export type RegistryType = {
-  Controllers: Set<Controller>;
-};
+  Controllers: Set<ControllerType>
+  DbContexts: Set<DbContextType>
+}
 
 export const Registry: RegistryType = {
-  Controllers: new Set<Controller>(),
-};
+  Controllers: new Set<ControllerType>(),
+  DbContexts: new Set<DbContextType>(),
+}

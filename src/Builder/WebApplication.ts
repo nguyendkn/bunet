@@ -1,5 +1,7 @@
+import type { ControllerActionType } from './Registries'
 import { ScanImplements } from '../Compilers/ScanImplements'
-import type { Action } from './Registries'
+import { DbContext } from '../Database/DbContext'
+import type { Options } from 'sequelize'
 
 interface CorsPolicyConfig {
   allowedOrigins: string[]
@@ -8,7 +10,7 @@ interface CorsPolicyConfig {
 }
 
 class CorsPolicy {
-  private config: CorsPolicyConfig
+  private readonly config: CorsPolicyConfig
 
   constructor() {
     this.config = {
@@ -59,7 +61,8 @@ interface WebApplicationConfig {
 class WebApplication {
   private static instance: WebApplication
   configs: WebApplicationConfig = {}
-  actions: Action[] = [] as Action[]
+  actions: ControllerActionType[] = [] as ControllerActionType[]
+  context: DbContext = {} as DbContext
 
   private constructor() {}
 
@@ -70,7 +73,8 @@ class WebApplication {
     return {
       Services: {
         AddControllers: WebApplication.prototype.AddControllers.bind(WebApplication.instance),
-        AddCors: WebApplication.prototype.AddCors.bind(WebApplication.instance)
+        AddCors: WebApplication.prototype.AddCors.bind(WebApplication.instance),
+        AddDbContext: WebApplication.prototype.AddDbContext.bind(WebApplication.instance)
       },
       Build: WebApplication.prototype.Build.bind(WebApplication.instance)
     }
@@ -102,13 +106,15 @@ class WebApplication {
     return this // Support chaining
   }
 
+  AddDbContext<T extends DbContext>(instance: T) {}
+
   /**
    * Builds the application with the specified configurations.
    */
   Build(__dirname: string) {
     if (this.configs.controllers) {
       const { Controllers } = ScanImplements(__dirname, '.ts')
-      this.actions = Array.from(Controllers).flatMap((controller) => controller.Actions) as Action[]
+      this.actions = Array.from(Controllers).flatMap((controller) => controller.Actions) as ControllerActionType[]
     }
 
     return {
@@ -146,7 +152,7 @@ class WebApplication {
               const parsedUrl = new URL(url)
 
               // Find matching route
-              const route = this.actions.find((action: Action | undefined) => {
+              const route = this.actions.find((action: ControllerActionType | undefined) => {
                 const actionRoute = action !== undefined ? '/' + action.Controller + action.Route : ''
                 return (
                   action !== undefined &&

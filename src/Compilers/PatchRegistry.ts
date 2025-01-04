@@ -1,6 +1,5 @@
-// Import necessary types and modules
 import type { ClassDeclaration, SourceFile } from 'ts-morph'
-import { Registry, type Action, type MethodType } from '../Builder/Registries'
+import { Registry, type ControllerActionType, type MethodType } from '../Builder/Registries'
 
 /**
  * Patches the controllers by extracting metadata and registering actions.
@@ -42,8 +41,8 @@ export function PatchActions(
   sourceFile: SourceFile,
   classDeclaration: ClassDeclaration,
   controllerRoute: string
-): Action[] {
-  const actions: Action[] = []
+): ControllerActionType[] {
+  const actions: ControllerActionType[] = []
   const className = classDeclaration.getName()
   if (!className) return actions // Ensure the class has a name
 
@@ -103,4 +102,22 @@ export function PatchActions(
   })
 
   return actions
+}
+
+/**
+ * Patches the context by extracting metadata and registering actions.
+ *
+ * @param sourceFile - The source file containing the controller class.
+ * @param classDeclaration - The class declaration to patch.
+ */
+export function PatchDbContexts(sourceFile: SourceFile, classDeclaration: ClassDeclaration) {
+  const className = classDeclaration.getName()
+  if (!className) return
+
+  Registry.DbContexts.add({
+    Name: className,
+    Path: sourceFile.getFilePath(),
+    Content: sourceFile.getFullText(),
+    SourceFile: sourceFile
+  })
 }

@@ -1,4 +1,4 @@
-import { ApiController, ControllerBase, HttpGet, Route } from '@bunet/core'
+import { ApiController, ControllerBase, HttpGet, Route } from '@/bunet/core'
 
 @ApiController()
 @Route('[controller]')
