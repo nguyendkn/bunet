@@ -1,0 +1,19 @@
+{
+  "name": "@bunet/core",
+  "module": "index.js",
+  "version": "1.0.7",
+  "type": "module",
+  "scripts": {
+    "build": "rimraf tsconfig.tsbuildinfo && rimraf ./dist && tsc && tsc-alias && cp package.json dist/",
+    "build:publish": "npm run build && npm publish ./dist"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "rimraf": "^6.0.1",
+    "ts-morph": "^25.0.0",
+    "tsc-alias": "^1.8.10"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
