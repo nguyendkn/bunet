@@ -1,3 +1,6 @@
+import { ScanImplements } from '../Compilers/ScanImplements'
+import type { Action } from './Registries'
+
 interface CorsPolicyConfig {
   allowedOrigins: string[]
   allowAnyHeader: boolean
@@ -56,6 +59,7 @@ interface WebApplicationConfig {
 class WebApplication {
   private static instance: WebApplication
   configs: WebApplicationConfig = {}
+  actions: Action[] = [] as Action[]
 
   private constructor() {}
 
@@ -77,7 +81,6 @@ class WebApplication {
    */
   AddControllers() {
     this.configs.controllers = true
-    console.log('Controllers added')
     return this // Support chaining
   }
 
@@ -103,14 +106,16 @@ class WebApplication {
    * Builds the application with the specified configurations.
    */
   Build(__dirname: string) {
-    console.log('Building application with configs:', this.configs)
+    if (this.configs.controllers) {
+      const { Controllers } = ScanImplements(__dirname, '.ts')
+      this.actions = Array.from(Controllers).flatMap((controller) => controller.Actions) as Action[]
+    }
+
     return {
       Run: (port: number) => {
         Bun.serve({
           port,
           fetch: (request: Request) => {
-            const { method, url } = request
-            const parsedUrl = new URL(url)
             const origin = request.headers.get('Origin') || ''
 
             // Check CORS policies
@@ -137,7 +142,23 @@ class WebApplication {
             }
 
             if (this.configs.controllers) {
-              // Placeholder logic for controllers (thực hiện điều hướng controllers tại đây)
+              const { method, url } = request
+              const parsedUrl = new URL(url)
+
+              // Find matching route
+              const route = this.actions.find((action: Action | undefined) => {
+                const actionRoute = action !== undefined ? '/' + action.Controller + action.Route : ''
+                return (
+                  action !== undefined &&
+                  action.Method === method &&
+                  parsedUrl.pathname === actionRoute.toLocaleLowerCase()
+                )
+              })
+
+              if (route) {
+                return route.Handler(request)
+              }
+
               return new Response('Controller logic not implemented', { status: 200 })
             }
 

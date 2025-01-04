@@ -4,7 +4,7 @@
   "version": "1.0.9",
   "type": "module",
   "scripts": {
-    "dev": "bun run ./test/index.ts",
+    "test": "bun run ./test/index.ts",
     "build": "rimraf tsconfig.tsbuildinfo && rimraf ./dist && tsc && tsc-alias && cp package.json dist/",
     "build:publish": "npm run build && npm publish ./dist"
   },
