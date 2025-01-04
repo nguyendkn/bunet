@@ -2,9 +2,15 @@
   "compilerOptions": {
     // Basic
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
+    "baseUrl": "./",
+    "paths": {
+      "@bunet/core": ["./src/index.ts"]
+    },
 
     // Enable latest features
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "ESNext",
@@ -13,9 +19,12 @@
     "allowJs": true,
 
     // Bundler mode
+    "declaration": true,
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
     "noEmit": false,
+    "sourceMap": false,
+    "declarationMap": false,
 
     // Best practices
     "strict": true,
@@ -26,5 +35,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["./src", "./test"]
 }

@@ -54,12 +54,14 @@ export class WebApplication {
                 const parsedUrl = new URL(url)
 
                 // Find matching route
-                const route = actions.find(
-                  (action: Action | undefined) =>
+                const route = actions.find((action: Action | undefined) => {
+                  const actionRoute = action !== undefined ? action.Controller + action.Route : '';
+                  return (
                     action !== undefined &&
                     action.Method === method &&
-                    parsedUrl.pathname.includes(action.Controller + action.Route)
-                );
+                    parsedUrl.pathname.includes(actionRoute.toLocaleLowerCase())
+                  )
+                })
 
                 // Execute the handler if a route matches
                 if (route) {

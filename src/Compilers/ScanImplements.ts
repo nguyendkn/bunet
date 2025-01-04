@@ -3,6 +3,8 @@ import { ScanSourceFiles } from './ScanSourceFiles'
 import type { SourceFile } from '../Types/SourceFile'
 import { PatchControllers } from './PatchRegistry'
 import { Registry } from '../Builder/Registries'
+import { ApiController } from '../Decorators/HttpRoutes'
+import { ControllerBase } from '../Controllers/ControllerBase'
 
 // Tập hợp lưu trữ các file đã được quét để tránh xử lý lặp lại
 const scanned = new Set<string>()
@@ -31,6 +33,17 @@ export function ScanImplements(rootPath: string, extention: string, files: strin
   project.getSourceFiles().forEach((sourceFile) => {
     // Lấy danh sách các class trong file hiện tại
     sourceFile.getClasses().forEach((classDeclaration) => {
+      // Kiểm tra nếu class có decorator @ApiController
+      const hasApiControllerDecorator = classDeclaration.getDecorators().some((decorator) => {
+        const decoratorName = decorator.getName()
+        return decoratorName === ApiController.name
+      })
+
+      // Nếu không có @ApiController thì bỏ qua class này
+      if (!hasApiControllerDecorator) {
+        return
+      }
+
       // Lấy các "heritage clause" (extends, implements) của class
       const heritageClauses = classDeclaration.getHeritageClauses()
 
@@ -41,7 +54,7 @@ export function ScanImplements(rootPath: string, extention: string, files: strin
 
           // Kiểm tra nếu class kế thừa từ "ControllerBase"
           types.forEach((type) => {
-            if (type.getText() === 'ControllerBase') {
+            if (type.getText() === ControllerBase.name) {
               const path = sourceFile.getFilePath()
 
               // Kiểm tra nếu file đã được xử lý
