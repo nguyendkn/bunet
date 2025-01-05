@@ -5,7 +5,11 @@ import { UserService } from './Services/UserService'
 
 const builder = WebApplication.CreateBuilder()
 const services = builder.Services
-services.AddControllers().AddDbContext(
+services.AddOpenTelemetry({
+  protocol: 'http',
+  host: 'localhost',
+  port: 80
+}).AddControllers().AddDbContext(
   DbContext.OnConfiguring(AppDbContext, {
     dialect: 'postgres',
     host: 'localhost',

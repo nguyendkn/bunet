@@ -7,7 +7,9 @@ import { ScanImplements } from '../Compilers/ScanImplements'
 import { ServiceCollection } from '../Dependency/ServiceCollection'
 import { type CorsPolicyConfig } from '../Configs/CorsPolicy'
 import { SecurityHeaders } from '../Shared/Constants'
-import { Logger } from '../Logging/Logger'
+import { RequestLogger, Logger } from '../Logging'
+import { OpenTelemetry } from '../Tracing/OpenTelemetry'
+import type { PrometheusConfigs } from '../Configs/PrometheusConfigs'
 
 class WebApplication {
   private static instance: WebApplication
@@ -26,6 +28,7 @@ class WebApplication {
     }
     return {
       Services: {
+        AddOpenTelemetry: WebApplication.prototype.AddOpenTelemetry.bind(WebApplication.instance),
         AddControllers: WebApplication.prototype.AddControllers.bind(WebApplication.instance),
         AddCors: WebApplication.prototype.AddCors.bind(WebApplication.instance),
         AddDbContext: WebApplication.prototype.AddDbContext.bind(WebApplication.instance),
@@ -35,6 +38,11 @@ class WebApplication {
       },
       Build: WebApplication.prototype.Build.bind(WebApplication.instance)
     }
+  }
+
+  AddOpenTelemetry(prometheus: PrometheusConfigs) {
+    OpenTelemetry.Initialize(prometheus)
+    return this
   }
 
   AddControllers() {
@@ -52,7 +60,7 @@ class WebApplication {
       }
     })
     this.configs.corsPolicies = corsPolicies
-    console.log('CORS policies added:', corsPolicies)
+    Logger.Information('CORS policies added: {0}', JSON.stringify(corsPolicies))
     return this
   }
 
@@ -61,27 +69,15 @@ class WebApplication {
     WebApplication.services.AddDbContext(instanceName, instance)
   }
 
-  AddSingleton(
-    token: string | symbol,
-    implementation: Constructor,
-    ...params: any[]
-  ) {
+  AddSingleton(token: string | symbol, implementation: Constructor, ...params: any[]) {
     WebApplication.services.AddSingleton(token, implementation, params)
   }
 
-  AddScoped(
-    token: string | symbol,
-    implementation: Constructor,
-    ...params: any[]
-  ) {
+  AddScoped(token: string | symbol, implementation: Constructor, ...params: any[]) {
     WebApplication.services.AddScoped(token, implementation, params)
   }
 
-  AddTransient(
-    token: string | symbol,
-    implementation: Constructor,
-    ...params: any[]
-  ) {
+  AddTransient(token: string | symbol, implementation: Constructor, ...params: any[]) {
     WebApplication.services.AddTransient(token, implementation, params)
   }
 
@@ -97,66 +93,90 @@ class WebApplication {
         Bun.serve({
           port,
           fetch: (request: Request) => {
-            return Logger(request, async () => {
-              const origin = request.headers.get('Origin') || ''
+            const tracer = OpenTelemetry.GetTracer()
+            const span = tracer.startSpan('HTTP Request', {
+              attributes: {
+                method: request.method,
+                url: request.url
+              }
+            })
 
-              if (this.configs.corsPolicies) {
-                for (const [policyName, policyConfig] of Object.entries(this.configs.corsPolicies)) {
-                  if (policyConfig.allowedOrigins.includes(origin) || policyConfig.allowedOrigins.includes('*')) {
-                    const headers: Record<string, string> = {
-                      'Access-Control-Allow-Origin': origin
-                    }
+            OpenTelemetry.RecordMetric('http_requests_total', 'Total HTTP requests', 1)
 
-                    if (policyConfig.allowAnyHeader) {
-                      headers['Access-Control-Allow-Headers'] = '*'
-                    }
-                    if (policyConfig.allowAnyMethod) {
-                      headers['Access-Control-Allow-Methods'] = '*'
-                    }
+            return OpenTelemetry.RunInContext(span, async () => {
+              return RequestLogger(request, async () => {
+                const origin = request.headers.get('Origin') || ''
 
-                    return new Response(null, {
-                      status: 204,
-                      headers
-                    })
+                // CORS logic
+                if (this.configs.corsPolicies) {
+                  for (const [policyName, policyConfig] of Object.entries(this.configs.corsPolicies)) {
+                    if (policyConfig.allowedOrigins.includes(origin) || policyConfig.allowedOrigins.includes('*')) {
+                      const headers: Record<string, string> = {
+                        'Access-Control-Allow-Origin': origin
+                      }
+
+                      if (policyConfig.allowAnyHeader) {
+                        headers['Access-Control-Allow-Headers'] = '*'
+                      }
+                      if (policyConfig.allowAnyMethod) {
+                        headers['Access-Control-Allow-Methods'] = '*'
+                      }
+
+                      span.setStatus(OpenTelemetry.OkStatus())
+                      span.end()
+                      return new Response(null, {
+                        status: 204,
+                        headers
+                      })
+                    }
                   }
                 }
-              }
 
-              if (this.configs.controllers) {
-                const { method, url } = request
-                const parsedUrl = new URL(url)
+                // Controller logic
+                if (this.configs.controllers) {
+                  const { method, url } = request
+                  const parsedUrl = new URL(url)
 
-                const route = this.actions.find((action: ControllerActionType | undefined) => {
-                  const actionRoute = action !== undefined ? '/' + action.Controller + action.Route : ''
-                  return (
-                    action !== undefined &&
-                    action.Method === method &&
-                    parsedUrl.pathname === actionRoute.toLocaleLowerCase()
-                  )
-                })
+                  const route = this.actions.find((action: ControllerActionType | undefined) => {
+                    const actionRoute =
+                      action !== undefined ? '/' + action.Controller + action.Route : ''
+                    return (
+                      action !== undefined &&
+                      action.Method === method &&
+                      parsedUrl.pathname === actionRoute.toLocaleLowerCase()
+                    )
+                  })
 
-                if (route) {
-                  return route.Handler(request)
+                  if (route) {
+                    span.setStatus(OpenTelemetry.OkStatus())
+                    span.end()
+                    return route.Handler(request)
+                  }
+
+                  span.setStatus(OpenTelemetry.ErrorStatus('Controller logic not implemented'))
+                  span.end()
+                  return new Response('Controller logic not implemented', {
+                    status: 200,
+                    headers: {
+                      ...SecurityHeaders
+                    }
+                  })
                 }
 
-                return new Response('Controller logic not implemented', {
-                  status: 200, headers: {
+                span.setStatus(OpenTelemetry.ErrorStatus('Not Found'))
+                span.end()
+                return new Response('Not Found', {
+                  status: 404,
+                  headers: {
                     ...SecurityHeaders
                   }
                 })
-              }
-
-              return new Response('Not Found', {
-                status: 404,
-                headers: {
-                  ...SecurityHeaders
-                }
               })
             })
           }
         })
 
-        console.log(`Server is running on port ${port}`)
+        Logger.Information('Server is running on port {0}', port)
       }
     }
   }
