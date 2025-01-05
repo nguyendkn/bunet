@@ -6,6 +6,7 @@ import { DbContext } from '../Database/DbContext'
 import { ScanImplements } from '../Compilers/ScanImplements'
 import { ServiceCollection } from '../Dependency/ServiceCollection'
 import { type CorsPolicyConfig } from '../Configs/CorsPolicy'
+import { SecurityHeaders } from '../Shared/Constants'
 
 class WebApplication {
   private static instance: WebApplication
@@ -136,23 +137,17 @@ class WebApplication {
                 return route.Handler(request)
               }
 
-              return new Response('Controller logic not implemented', { status: 200 })
-            }
-
-            const securityHeaders: Record<string, string> = {
-              'Content-Security-Policy': 'default-src \'self\'; script-src \'self\' \'unsafe-inline\';',
-              'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-              'X-Frame-Options': 'DENY',
-              'X-Content-Type-Options': 'nosniff',
-              'X-DNS-Prefetch-Control': 'off',
-              'X-XSS-Protection': '1; mode=block'
+              return new Response('Controller logic not implemented', {
+                status: 200, headers: {
+                  ...SecurityHeaders
+                }
+              })
             }
 
             return new Response('Not Found', {
               status: 404,
               headers: {
-                ...securityHeaders,
-                'X-Powered-By': ''
+                ...SecurityHeaders
               }
             })
           }
