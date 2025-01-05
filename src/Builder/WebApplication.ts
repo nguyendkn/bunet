@@ -7,6 +7,7 @@ import { ScanImplements } from '../Compilers/ScanImplements'
 import { ServiceCollection } from '../Dependency/ServiceCollection'
 import { type CorsPolicyConfig } from '../Configs/CorsPolicy'
 import { SecurityHeaders } from '../Shared/Constants'
+import { Logger } from '../Logging/Logger'
 
 class WebApplication {
   private static instance: WebApplication
@@ -96,59 +97,61 @@ class WebApplication {
         Bun.serve({
           port,
           fetch: (request: Request) => {
-            const origin = request.headers.get('Origin') || ''
+            return Logger(request, async () => {
+              const origin = request.headers.get('Origin') || ''
 
-            if (this.configs.corsPolicies) {
-              for (const [policyName, policyConfig] of Object.entries(this.configs.corsPolicies)) {
-                if (policyConfig.allowedOrigins.includes(origin) || policyConfig.allowedOrigins.includes('*')) {
-                  const headers: Record<string, string> = {
-                    'Access-Control-Allow-Origin': origin
-                  }
+              if (this.configs.corsPolicies) {
+                for (const [policyName, policyConfig] of Object.entries(this.configs.corsPolicies)) {
+                  if (policyConfig.allowedOrigins.includes(origin) || policyConfig.allowedOrigins.includes('*')) {
+                    const headers: Record<string, string> = {
+                      'Access-Control-Allow-Origin': origin
+                    }
 
-                  if (policyConfig.allowAnyHeader) {
-                    headers['Access-Control-Allow-Headers'] = '*'
-                  }
-                  if (policyConfig.allowAnyMethod) {
-                    headers['Access-Control-Allow-Methods'] = '*'
-                  }
+                    if (policyConfig.allowAnyHeader) {
+                      headers['Access-Control-Allow-Headers'] = '*'
+                    }
+                    if (policyConfig.allowAnyMethod) {
+                      headers['Access-Control-Allow-Methods'] = '*'
+                    }
 
-                  return new Response(null, {
-                    status: 204,
-                    headers
-                  })
+                    return new Response(null, {
+                      status: 204,
+                      headers
+                    })
+                  }
                 }
               }
-            }
 
-            if (this.configs.controllers) {
-              const { method, url } = request
-              const parsedUrl = new URL(url)
+              if (this.configs.controllers) {
+                const { method, url } = request
+                const parsedUrl = new URL(url)
 
-              const route = this.actions.find((action: ControllerActionType | undefined) => {
-                const actionRoute = action !== undefined ? '/' + action.Controller + action.Route : ''
-                return (
-                  action !== undefined &&
-                  action.Method === method &&
-                  parsedUrl.pathname === actionRoute.toLocaleLowerCase()
-                )
-              })
+                const route = this.actions.find((action: ControllerActionType | undefined) => {
+                  const actionRoute = action !== undefined ? '/' + action.Controller + action.Route : ''
+                  return (
+                    action !== undefined &&
+                    action.Method === method &&
+                    parsedUrl.pathname === actionRoute.toLocaleLowerCase()
+                  )
+                })
 
-              if (route) {
-                return route.Handler(request)
+                if (route) {
+                  return route.Handler(request)
+                }
+
+                return new Response('Controller logic not implemented', {
+                  status: 200, headers: {
+                    ...SecurityHeaders
+                  }
+                })
               }
 
-              return new Response('Controller logic not implemented', {
-                status: 200, headers: {
+              return new Response('Not Found', {
+                status: 404,
+                headers: {
                   ...SecurityHeaders
                 }
               })
-            }
-
-            return new Response('Not Found', {
-              status: 404,
-              headers: {
-                ...SecurityHeaders
-              }
             })
           }
         })
