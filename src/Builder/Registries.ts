@@ -1,5 +1,4 @@
 import type { SourceFile } from 'ts-morph'
-import { DbContext } from '@/bunet/core'
 
 export type MethodType = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 

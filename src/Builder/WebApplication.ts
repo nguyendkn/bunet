@@ -1,97 +1,45 @@
+import type { Constructor } from '../Dependency/Constructor'
 import type { ControllerActionType } from './Registries'
-import { ScanImplements } from '../Compilers/ScanImplements'
+import type { WebApplicationConfig } from '../Configs/WebApplicationConfig'
+import { CorsPolicy } from './CorsPolicy'
 import { DbContext } from '../Database/DbContext'
-import type { Options } from 'sequelize'
-
-interface CorsPolicyConfig {
-  allowedOrigins: string[]
-  allowAnyHeader: boolean
-  allowAnyMethod: boolean
-}
-
-class CorsPolicy {
-  private readonly config: CorsPolicyConfig
-
-  constructor() {
-    this.config = {
-      allowedOrigins: [],
-      allowAnyHeader: false,
-      allowAnyMethod: false
-    }
-  }
-
-  /**
-   * Configures allowed origins for this CORS policy.
-   * @param origins - The origins to allow.
-   */
-  WithOrigins(...origins: string[]) {
-    this.config.allowedOrigins = origins
-    return this // Support chaining
-  }
-
-  /**
-   * Allows any header in CORS requests.
-   */
-  AllowAnyHeader() {
-    this.config.allowAnyHeader = true
-    return this // Support chaining
-  }
-
-  /**
-   * Allows any HTTP method in CORS requests.
-   */
-  AllowAnyMethod() {
-    this.config.allowAnyMethod = true
-    return this // Support chaining
-  }
-
-  /**
-   * Returns the internal configuration for this policy.
-   */
-  getConfig() {
-    return this.config
-  }
-}
-
-interface WebApplicationConfig {
-  controllers?: boolean
-  corsPolicies?: Record<string, CorsPolicyConfig>
-}
+import { ScanImplements } from '../Compilers/ScanImplements'
+import { ServiceCollection } from '../Dependency/ServiceCollection'
+import { type CorsPolicyConfig } from '../Configs/CorsPolicy'
 
 class WebApplication {
   private static instance: WebApplication
+  private static services: ServiceCollection
   configs: WebApplicationConfig = {}
   actions: ControllerActionType[] = [] as ControllerActionType[]
   context: DbContext = {} as DbContext
 
-  private constructor() {}
+  private constructor() {
+  }
 
   static CreateBuilder() {
     if (!WebApplication.instance) {
       WebApplication.instance = new WebApplication()
+      WebApplication.services = new ServiceCollection()
     }
     return {
       Services: {
         AddControllers: WebApplication.prototype.AddControllers.bind(WebApplication.instance),
         AddCors: WebApplication.prototype.AddCors.bind(WebApplication.instance),
-        AddDbContext: WebApplication.prototype.AddDbContext.bind(WebApplication.instance)
+        AddDbContext: WebApplication.prototype.AddDbContext.bind(WebApplication.instance),
+        AddSingleton: WebApplication.prototype.AddSingleton.bind(WebApplication.instance),
+        AddScoped: WebApplication.prototype.AddScoped.bind(WebApplication.instance),
+        AddTransient: WebApplication.prototype.AddTransient.bind(WebApplication.instance)
       },
       Build: WebApplication.prototype.Build.bind(WebApplication.instance)
     }
   }
 
-  /**
-   * Adds controllers to the service configuration.
-   */
   AddControllers() {
     this.configs.controllers = true
-    return this // Support chaining
+    return this
   }
 
-  /**
-   * Adds CORS policies to the service configuration.
-   * @param options - Function to configure CORS policies.
-   */
   AddCors(options: (cors: { AddPolicy: (name: string, configure: (policy: CorsPolicy) => void) => void }) => void) {
     const corsPolicies: Record<string, CorsPolicyConfig> = {}
     options({
@@ -103,15 +51,40 @@ class WebApplication {
     })
     this.configs.corsPolicies = corsPolicies
     console.log('CORS policies added:', corsPolicies)
-    return this // Support chaining
+    return this
   }
 
-  AddDbContext<T extends DbContext>(instance: T) {}
+  AddDbContext<T extends DbContext>(instance: T) {
+    const instanceName = (instance as any).constructor.name
+    WebApplication.services.AddDbContext(Symbol(instanceName), instance)
+  }
 
-  /**
-   * Builds the application with the specified configurations.
-   */
+  AddSingleton(
+    token: string | symbol,
+    implementation: Constructor,
+    ...params: any[]
+  ) {
+    WebApplication.services.AddSingleton(token, implementation, params)
+  }
+
+  AddScoped(
+    token: string | symbol,
+    implementation: Constructor,
+    ...params: any[]
+  ) {
+    WebApplication.services.AddScoped(token, implementation, params)
+  }
+
+  AddTransient(
+    token: string | symbol,
+    implementation: Constructor,
+    ...params: any[]
+  ) {
+    WebApplication.services.AddTransient(token, implementation, params)
+  }
+
   Build(__dirname: string) {
+    ServiceCollection.instance = WebApplication.services
     if (this.configs.controllers) {
       const { Controllers } = ScanImplements(__dirname, '.ts')
       this.actions = Array.from(Controllers).flatMap((controller) => controller.Actions) as ControllerActionType[]
@@ -124,7 +97,6 @@ class WebApplication {
           fetch: (request: Request) => {
             const origin = request.headers.get('Origin') || ''
 
-            // Check CORS policies
             if (this.configs.corsPolicies) {
               for (const [policyName, policyConfig] of Object.entries(this.configs.corsPolicies)) {
                 if (policyConfig.allowedOrigins.includes(origin) || policyConfig.allowedOrigins.includes('*')) {
@@ -151,7 +123,6 @@ class WebApplication {
               const { method, url } = request
               const parsedUrl = new URL(url)
 
-              // Find matching route
               const route = this.actions.find((action: ControllerActionType | undefined) => {
                 const actionRoute = action !== undefined ? '/' + action.Controller + action.Route : ''
                 return (
@@ -168,7 +139,22 @@ class WebApplication {
               return new Response('Controller logic not implemented', { status: 200 })
             }
 
-            return new Response('Not Found', { status: 404 })
+            const securityHeaders: Record<string, string> = {
+              'Content-Security-Policy': 'default-src \'self\'; script-src \'self\' \'unsafe-inline\';',
+              'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+              'X-Frame-Options': 'DENY',
+              'X-Content-Type-Options': 'nosniff',
+              'X-DNS-Prefetch-Control': 'off',
+              'X-XSS-Protection': '1; mode=block'
+            }
+
+            return new Response('Not Found', {
+              status: 404,
+              headers: {
+                ...securityHeaders,
+                'X-Powered-By': ''
+              }
+            })
           }
         })
 

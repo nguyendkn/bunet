@@ -1,12 +1,12 @@
-import { Injectable } from '@/bunet/core'
-import type { IUser } from 'test/Database/Aggregates/UserAggregate/User'
-import type { AppDbContext } from 'test/Database/AppDbContex'
+import { type IUser, UserModel } from 'test/Database/Aggregates/UserAggregate/User'
+import { AppDbContext } from 'test/Database/AppDbContext'
+import { Inject } from '@/bunet/core'
 
-@Injectable()
 export class UserService {
-  constructor(public context: AppDbContext) {}
+  @Inject(AppDbContext.name)
+  private readonly context!: AppDbContext
 
-  async create(user: IUser) {
-    return await this.context.Users?.create(user)
+  async create(user: IUser): Promise<UserModel> {
+    return this.context.Users.create(user)
   }
 }

@@ -1,14 +1,12 @@
 import { password } from 'bun'
-import { ApiController, ControllerBase, HttpGet, Injectable, Route, uuidv7 } from '@/bunet/core'
-import type { UserService } from 'test/Services/UserService'
+import { ApiController, ControllerBase, HttpGet, Inject, Route, uuidv7 } from '@/bunet/core'
+import { UserService } from 'test/Services/UserService'
 
-@Injectable()
 @ApiController()
 @Route('[controller]')
 export class UserController extends ControllerBase {
-  constructor(private readonly userService: UserService) {
-    super()
-  }
+  @Inject(UserService.name)
+  private readonly userService!: UserService
 
   @HttpGet('/create')
   async create() {
