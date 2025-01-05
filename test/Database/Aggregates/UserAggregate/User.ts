@@ -1,3 +1,4 @@
+import { uuidv7 } from '@/bunet/core'
 import { DataTypes, Model, Sequelize, type Optional } from 'sequelize'
 
 export interface IUser {
@@ -15,9 +16,11 @@ export class UserModel extends Model<IUser, IUserCreationAttributes> {
     UserModel.init(
       {
         id: {
-          type: DataTypes.UUID,
-          primaryKey: true,
-          defaultValue: DataTypes.UUIDV4
+          type: DataTypes.STRING(32),
+          defaultValue: (): string => {
+            return uuidv7(true)
+          },
+          primaryKey: true
         },
         name: {
           type: DataTypes.STRING,
@@ -39,7 +42,7 @@ export class UserModel extends Model<IUser, IUserCreationAttributes> {
         timestamps: true,
         hooks: {
           beforeCreate: (user) => {
-            console.log(`Creating user`)
+            console.log(`Creating user`, user.get({ plain: true }))
           },
           afterCreate: (user) => {
             console.log(`User created`)

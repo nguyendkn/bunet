@@ -1,6 +1,7 @@
 import { password } from 'bun'
 import { ApiController, ControllerBase, HttpPost, Inject, Route, uuidv7 } from '@/bunet/core'
 import { UserService } from 'test/Services/UserService'
+import type { IUser } from '../Database/Aggregates/UserAggregate/User'
 
 @ApiController()
 @Route('[controller]')
@@ -9,14 +10,9 @@ export class UserController extends ControllerBase {
   private readonly userService!: UserService
 
   @HttpPost('/create')
-  async create(request: Request) {
-    const user = {
-      id: uuidv7(),
-      name: 'Dao Khoi Nguyen',
-      userName: 'nguyendk',
-      password: await password.hash('Pass@word')
-    }
-    const response = this.userService.create(user)
+  async create(user: IUser) {
+    user.password = await password.hash(user.password)
+    const response = await this.userService.create(user)
     return this.Ok(response)
   }
 }
