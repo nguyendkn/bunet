@@ -7,6 +7,6 @@ export class UserService {
   private readonly context!: AppDbContext
 
   async create(user: IUser): Promise<UserModel> {
-    return this.context.Users.create(user)
+    return this.context.Users.Create(user)
   }
 }

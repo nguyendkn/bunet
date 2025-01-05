@@ -21,7 +21,6 @@ export class DbContext {
     return new instance(options); // Tạo instance từ class được truyền vào
   }
 
-
   // Hook for setting up models (to be overridden in derived classes)
   protected OnModelCreating(sequelize: Sequelize): void {
     throw new Error('OnModelCreating method must be implemented.')

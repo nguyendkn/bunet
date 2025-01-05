@@ -1,5 +1,4 @@
-import { uuidv7 } from '@/bunet/core'
-import { DataTypes, Model, Sequelize, type ModelStatic, type Optional } from 'sequelize'
+import { DataTypes, Model, Sequelize, type Optional } from 'sequelize'
 
 export interface IUser {
   id: string
@@ -8,21 +7,17 @@ export interface IUser {
   password: string
 }
 
-export interface IUserCreationAttributes extends Optional<IUser, 'id'> {}
+export interface IUserCreationAttributes extends Optional<IUser, 'id'> {
+}
 
-export class UserModel extends Model<IUser, IUserCreationAttributes> implements IUser {
-  public id!: string
-  public name!: string
-  public userName!: string
-  public password!: string
-
-  static Definition(sequelize: Sequelize, modelName: string): ModelStatic<UserModel> {
-    return UserModel.init(
+export class UserModel extends Model<IUser, IUserCreationAttributes> {
+  static Definition(sequelize: Sequelize, modelName: string, tableName: string): typeof UserModel {
+    UserModel.init(
       {
         id: {
-          type: DataTypes.STRING,
+          type: DataTypes.UUID,
           primaryKey: true,
-          defaultValue: (): string => uuidv7()
+          defaultValue: DataTypes.UUIDV4
         },
         name: {
           type: DataTypes.STRING,
@@ -39,8 +34,19 @@ export class UserModel extends Model<IUser, IUserCreationAttributes> implements 
       },
       {
         sequelize,
-        modelName
+        modelName,
+        tableName,
+        timestamps: true,
+        hooks: {
+          beforeCreate: (user) => {
+            console.log(`Creating user`)
+          },
+          afterCreate: (user) => {
+            console.log(`User created`)
+          }
+        }
       }
-    ) as ModelStatic<UserModel>
+    )
+    return UserModel
   }
 }

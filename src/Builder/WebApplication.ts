@@ -56,7 +56,7 @@ class WebApplication {
 
   AddDbContext<T extends DbContext>(instance: T) {
     const instanceName = (instance as any).constructor.name
-    WebApplication.services.AddDbContext(Symbol(instanceName), instance)
+    WebApplication.services.AddDbContext(instanceName, instance)
   }
 
   AddSingleton(
