@@ -2,7 +2,7 @@
   "compilerOptions": {
     // Basic
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "baseUrl": "./",
     "paths": {
       "@/bunet/core": ["./src/index.ts"]
@@ -37,5 +37,6 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "typeRoots": ["./node_modules/@types", "./"],
-  "include": ["./src/**/*", "global.d.ts", "./test"]
+  "include": ["./src/**/*", "global.d.ts"],
+  "exclude": ["test"]
 }
