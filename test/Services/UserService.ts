@@ -1,5 +1,5 @@
-import { type IUser, UserModel } from 'test/Database/Aggregates/UserAggregate/User'
-import { AppDbContext } from 'test/Database/AppDbContext'
+import { type IUser, UserModel } from '../Database/Aggregates/UserAggregate/User'
+import { AppDbContext } from '../Database/AppDbContext'
 import { Inject } from '@/bunet/core'
 
 export class UserService {

@@ -1,6 +1,6 @@
 import { password } from 'bun'
 import { ApiController, ControllerBase, HttpPost, Inject, Route, uuidv7 } from '@/bunet/core'
-import { UserService } from 'test/Services/UserService'
+import { UserService } from '../Services/UserService'
 import type { IUser } from '../Database/Aggregates/UserAggregate/User'
 
 @ApiController()
