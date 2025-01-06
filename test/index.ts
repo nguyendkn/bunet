@@ -8,7 +8,8 @@ const services = builder.Services
 services.AddOpenTelemetry({
   protocol: 'http',
   host: 'localhost',
-  port: 80
+  port: 80,
+  systemMetricsInterval: 6000
 }).AddControllers().AddDbContext(
   DbContext.OnConfiguring(AppDbContext, {
     dialect: 'postgres',

@@ -1,4 +1,3 @@
-import * as os from 'os'
 import { type PrometheusConfigs, Logger } from '@/bunet/core'
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base'
 import { MeterProvider } from '@opentelemetry/sdk-metrics'
@@ -6,7 +5,7 @@ import { NodeTracerProvider, BatchSpanProcessor } from '@opentelemetry/sdk-trace
 import { W3CTraceContextPropagator } from '@opentelemetry/core'
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks'
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus'
-import { networkInterfaces } from 'os'
+import { networkInterfaces, loadavg } from 'os'
 import { trace, context, SpanStatusCode, type Span } from '@opentelemetry/api'
 
 export class OpenTelemetry {
@@ -116,7 +115,7 @@ export class OpenTelemetry {
     const meter = this.meterProvider.getMeter('system-metrics')
 
     // CPU Usage
-    const cpuUsage = os.loadavg()[0]
+    const cpuUsage = loadavg()[0]
     const cpuCounter = meter.createCounter('system_cpu_usage', {
       description: 'CPU load average over 1 minute'
     })
