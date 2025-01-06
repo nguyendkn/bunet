@@ -14,13 +14,13 @@ interface ServiceDescriptor<T> {
 }
 
 export class ServiceCollection {
-  public static instance: ServiceCollection;
+  public static instance: ServiceCollection
   private readonly services = new Map<string | symbol, ServiceDescriptor<any>>()
   private readonly scopedInstances = new Map<string, Map<string | symbol, any>>()
 
   AddDbContext<T>(token: string | symbol, instance: T): void {
     const constructor = (instance as any).constructor as Constructor<T>
-    this.services.set(token, {
+    this.services.set(token.toString().toLowerCase(), {
       implementation: constructor,
       lifetime: ServiceLifetime.Singleton,
       instance

@@ -65,20 +65,20 @@ class WebApplication {
   }
 
   AddDbContext<T extends DbContext>(instance: T) {
-    const instanceName = (instance as any).constructor.name
+    const instanceName = (instance as any).constructor.name.toLowerCase()
     WebApplication.services.AddDbContext(instanceName, instance)
   }
 
   AddSingleton(token: string | symbol, implementation: Constructor, ...params: any[]) {
-    WebApplication.services.AddSingleton(token, implementation, params)
+    WebApplication.services.AddSingleton(token.toString().toLowerCase(), implementation, params)
   }
 
   AddScoped(token: string | symbol, implementation: Constructor, ...params: any[]) {
-    WebApplication.services.AddScoped(token, implementation, params)
+    WebApplication.services.AddScoped(token.toString().toLowerCase(), implementation, params)
   }
 
   AddTransient(token: string | symbol, implementation: Constructor, ...params: any[]) {
-    WebApplication.services.AddTransient(token, implementation, params)
+    WebApplication.services.AddTransient(token.toString().toLowerCase(), implementation, params)
   }
 
   Build(__dirname: string) {

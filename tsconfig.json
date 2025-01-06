@@ -2,7 +2,7 @@
   "compilerOptions": {
     // Basic
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDirs": ["./src", "test"],
     "baseUrl": "./",
     "paths": {
       "@/bunet/core": ["./src/index.ts"]
