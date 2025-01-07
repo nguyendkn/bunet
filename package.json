@@ -1,7 +1,7 @@
 {
   "name": "@bunet/core",
   "module": "index.js",
-  "version": "1.0.14",
+  "version": "1.0.17",
   "type": "module",
   "author": {
     "email": "dknguyen@cmc.com.vn",
