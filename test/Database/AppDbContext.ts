@@ -10,6 +10,11 @@ export class AppDbContext extends DbContext {
   }
 
   protected OnModelCreating(sequelize: Sequelize): void {
-    this.sequelize.sync({ alter: true }).catch(console.error)
+    this.Sync('Database', sequelize, {
+      ...this.options,
+      directory: 'Migrations',
+      singularize: false,
+      useDefine: true
+    }).catch(console.error)
   }
 }

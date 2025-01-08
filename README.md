@@ -1,5 +1,5 @@
 # @bunet/core
-**Version**: 1.0.13
+**Version**: 1.0.15
 
 ## Description
 `@bunet/core` is an open-source library designed to build robust applications with the support of performance monitoring tools like OpenTelemetry. This library simplifies the integration, monitoring, and scaling of systems, ensuring efficiency and reliability for developers.
@@ -93,21 +93,12 @@ npm install @bunet/core
 ## Usage
 ### Initializing the Library
 ```javascript
-const BunetCore = require('@bunet/core');
+import 'global.d.ts';
+import { WebApplication } from '@/bunet/core';
 
-// Example initialization with basic configuration
-const app = BunetCore.init({
-  tracing: true,
-  database: {
-    host: 'localhost',
-    port: 5432,
-    username: 'user',
-    password: 'password',
-    database: 'example_db',
-  },
-});
-
-app.start();
+const builder = WebApplication.CreateBuilder();
+const app = builder.Build(__dirname);
+app.Run(3000);
 ```
 
 ### Integrating with OpenTelemetry
