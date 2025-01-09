@@ -91,8 +91,9 @@ export class MigrationBuilder {
       tables = _.differenceWith(tables, skipTables, isTableEqual)
     }
 
-    const promises = tables.map(t => {
-      return this.mapForeignKeys(t).then(() => this.mapTable(t))
+    const promises = tables.map(async t => {
+      await this.mapForeignKeys(t)
+      return await this.MapTable(t)
     })
 
     await Promise.all(promises)
@@ -161,7 +162,7 @@ export class MigrationBuilder {
   }
 
 
-  private async mapTable(table: Table) {
+  private async MapTable(table: Table) {
     try {
       const fields = await this.queryInterface.describeTable(table.table_name, table.table_schema)
       this.tableData.tables[makeTableQName(table)] = fields
@@ -174,16 +175,16 @@ export class MigrationBuilder {
         const elementTypes = await this.executeQuery<ColumnElementType>(stquery)
         // add element type to "elementType" property of field
         elementTypes.forEach(et => {
-          const fld = fields[et.column_name] as Field
-          if (fld.type === 'ARRAY') {
-            fld.elementType = et.element_type
-            if (et.element_type === 'USER-DEFINED' && et.enum_values && !fld.special.length) {
-              fld.elementType = 'ENUM'
+          const field = fields[et.column_name] as Field
+          if (field.type === 'ARRAY') {
+            field.elementType = et.element_type
+            if (et.element_type === 'USER-DEFINED' && et.enum_values && !field.special.length) {
+              field.elementType = 'ENUM'
               // fromArray is a method defined on Postgres QueryGenerator only
-              fld.special = (this.queryInterface as any).queryGenerator.fromArray(et.enum_values)
+              field.special = (this.queryInterface as any).queryGenerator.fromArray(et.enum_values)
             }
-          } else if (fld.type === 'USER-DEFINED') {
-            fld.type = !fld.special.length ? et.udt_name : 'ENUM'
+          } else if (field.type === 'USER-DEFINED') {
+            field.type = !field.special.length ? et.udt_name : 'ENUM'
           }
         })
 
@@ -253,7 +254,6 @@ export class MigrationBuilder {
       raw: true
     }) as any as Promise<T[]>
   }
-
 }
 
 // option tables are a list of strings; each string is either

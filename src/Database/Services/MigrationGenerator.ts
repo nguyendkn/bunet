@@ -15,7 +15,6 @@ import type {
   CaseOption,
   Field,
   IndexSpec,
-  LangOption,
   Relation,
   TableData,
   TSField
@@ -34,7 +33,6 @@ export class MigrationGenerator {
   options: {
     indentation?: number;
     spaces?: boolean;
-    lang?: LangOption;
     caseModel?: CaseOption;
     caseProp?: CaseOption;
     caseFile?: CaseFileOption;
@@ -54,44 +52,15 @@ export class MigrationGenerator {
     this.relations = tableData.relations
     this.dialect = dialect
     this.options = options
-    this.options.lang = this.options.lang || 'es5'
     this.space = MakeIndent(this.options.spaces, this.options.indentation)
   }
 
   MakeHeaderTemplate() {
     let header = ''
-    const sp = this.space[1]
 
-    if (this.options.lang === 'ts') {
-      header += 'import * as Sequelize from \'sequelize\';\n'
-      header += 'import { DataTypes, Model, Optional } from \'sequelize\';\n'
-    } else if (this.options.lang === 'es6') {
-      header += 'const Sequelize = require(\'sequelize\');\n'
-      header += 'module.exports = (sequelize, DataTypes) => {\n'
-      header += sp + 'return #TABLE#.init(sequelize, DataTypes);\n'
-      header += '}\n\n'
-      header += 'class #TABLE# extends Sequelize.Model {\n'
-      header += sp + 'static init(sequelize, DataTypes) {\n'
-      if (this.options.useDefine) {
-        header += sp + 'return sequelize.define(\'#TABLE#\', {\n'
-      } else {
-        header += sp + 'return super.init({\n'
-      }
-    } else if (this.options.lang === 'esm') {
-      header += 'import _sequelize from \'sequelize\';\n'
-      header += 'const { Model, Sequelize } = _sequelize;\n\n'
-      header += 'export default class #TABLE# extends Model {\n'
-      header += sp + 'static init(sequelize, DataTypes) {\n'
-      if (this.options.useDefine) {
-        header += sp + 'return sequelize.define(\'#TABLE#\', {\n'
-      } else {
-        header += sp + 'return super.init({\n'
-      }
-    } else {
-      header += 'const Sequelize = require(\'sequelize\');\n'
-      header += 'module.exports = function(sequelize, DataTypes) {\n'
-      header += sp + 'return sequelize.define(\'#TABLE#\', {\n'
-    }
+    header += 'import * as Sequelize from \'sequelize\';\n'
+    header += 'import { DataTypes, Model, Optional } from \'sequelize\';\n'
+
     return header
   }
 
@@ -104,66 +73,59 @@ export class MigrationGenerator {
     tableNames.forEach(table => {
       let str = header
       const [schemaName, tableNameOrig] = qNameSplit(table)
-      const tableName = MakeTableName(this.options.caseModel, tableNameOrig, this.options.singularize, this.options.lang)
+      const tableName = MakeTableName(this.options.caseModel, tableNameOrig, this.options.singularize)
 
-      if (this.options.lang === 'ts') {
-        const associations = this.AddTypeScriptAssociationMixins(table)
-        const needed = Object.keys(associations.needed).sort()
-        needed.forEach(fkTable => {
-          const set = associations.needed[fkTable]
-          const [fkSchema, fkTableName] = qNameSplit(fkTable)
-          const filename = recase(this.options.caseFile, fkTableName, this.options.singularize)
-          str += `import type { ${Array.from(set.values()).sort().join(', ')} } from './${filename}';\n`
-        })
+      const associations = this.AddTypeScriptAssociationMixins(table)
+      const needed = Object.keys(associations.needed).sort()
+      needed.forEach(fkTable => {
+        const set = associations.needed[fkTable]
+        const [fkSchema, fkTableName] = qNameSplit(fkTable)
+        const filename = recase(this.options.caseFile, fkTableName, this.options.singularize)
+        str += `import type { ${Array.from(set.values()).sort().join(', ')} } from './${filename}';\n`
+      })
 
-        str += '\nexport interface #TABLE#Attributes {\n'
-        str += this.AddTypeScriptFields(table, true) + '}\n\n'
+      str += '\nexport interface #TABLE#Attributes {\n'
+      str += this.AddTypeScriptFields(table, true) + '}\n\n'
 
-        const primaryKeys = this.GetTypeScriptPrimaryKeys(table)
+      const primaryKeys = this.GetTypeScriptPrimaryKeys(table)
 
-        if (primaryKeys.length) {
-          str += `export type #TABLE#Pk = ${primaryKeys.map((k) => `"${recase(this.options.caseProp, k)}"`).join(' | ')};\n`
-          str += `export type #TABLE#Id = #TABLE#[#TABLE#Pk];\n`
-        }
+      if (primaryKeys.length) {
+        str += `export type #TABLE#Pk = ${primaryKeys.map((k) => `"${recase(this.options.caseProp, k)}"`).join(' | ')};\n`
+        str += `export type #TABLE#Id = #TABLE#[#TABLE#Pk];\n`
+      }
 
-        const creationOptionalFields = this.GetTypeScriptCreationOptionalFields(table)
+      const creationOptionalFields = this.GetTypeScriptCreationOptionalFields(table)
 
-        if (creationOptionalFields.length) {
-          str += `export type #TABLE#OptionalAttributes = ${creationOptionalFields.map((k) => `"${recase(this.options.caseProp, k)}"`).join(' | ')};\n`
-          str += 'export type #TABLE#CreationAttributes = Optional<#TABLE#Attributes, #TABLE#OptionalAttributes>;\n\n'
-        } else {
-          str += 'export type #TABLE#CreationAttributes = #TABLE#Attributes;\n\n'
-        }
+      if (creationOptionalFields.length) {
+        str += `export type #TABLE#OptionalAttributes = ${creationOptionalFields.map((k) => `"${recase(this.options.caseProp, k)}"`).join(' | ')};\n`
+        str += 'export type #TABLE#CreationAttributes = Optional<#TABLE#Attributes, #TABLE#OptionalAttributes>;\n\n'
+      } else {
+        str += 'export type #TABLE#CreationAttributes = #TABLE#Attributes;\n\n'
+      }
 
-        str += 'export class #TABLE# extends Model<#TABLE#Attributes, #TABLE#CreationAttributes> implements #TABLE#Attributes {\n'
-        str += this.AddTypeScriptFields(table, false)
-        str += '\n' + associations.str
-        str += `\n${this.space[1]}static initModel(sequelize: Sequelize.Sequelize): typeof #TABLE# {\n`
+      str += 'export class #TABLE# extends Model<#TABLE#Attributes, #TABLE#CreationAttributes> implements #TABLE#Attributes {\n'
+      str += this.AddTypeScriptFields(table, false)
+      str += '\n' + associations.str
+      str += `\n${this.space[1]}static initModel(sequelize: Sequelize.Sequelize): typeof #TABLE# {\n`
 
-        if (this.options.useDefine) {
-          str += `${this.space[2]}return sequelize.define('#TABLE#', {\n`
-        } else {
-          str += `${this.space[2]}return #TABLE#.init({\n`
-        }
+      if (this.options.useDefine) {
+        str += `${this.space[2]}return sequelize.define('#TABLE#', {\n`
+      } else {
+        str += `${this.space[2]}return #TABLE#.init({\n`
       }
 
       str += this.AddTable(table)
 
-      const lang = this.options.lang
-      if (lang === 'ts' && this.options.useDefine) {
+      if (this.options.useDefine) {
         str += ') as typeof #TABLE#;\n'
       } else {
         str += ');\n'
       }
 
-      if (lang === 'es6' || lang === 'esm' || lang === 'ts') {
-        if (this.options.useDefine) {
-          str += `${this.space[1]}}\n}\n`
-        } else {
-          str += `${this.space[1]}}\n}\n`
-        }
+      if (this.options.useDefine) {
+        str += `${this.space[1]}}\n}\n`
       } else {
-        str += '};\n'
+        str += `${this.space[1]}}\n}\n`
       }
 
       const re = new RegExp('#TABLE#', 'g')
@@ -398,12 +360,6 @@ export class MigrationGenerator {
             val_text = quoteWrapper + defaultVal + quoteWrapper
           }
         }
-
-        // val_text = _.isString(val_text) && !val_text.match(/^sequelize\.[^(]+\(.*\)$/)
-        // ? self.sequelize.escape(_.trim(val_text, '"'), null, self.options.dialect)
-        // : val_text;
-        // don't prepend N for MSSQL when building models...
-        // defaultVal = _.trimStart(defaultVal, 'N');
 
         str += space[3] + attr + ': ' + val_text
 

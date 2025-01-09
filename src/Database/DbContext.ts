@@ -1,6 +1,6 @@
-import { type Options, Sequelize, Transaction } from 'sequelize'
 import type { AutoOptions } from './Types'
-import { MigrationBuilder } from './Services/MigrationBuilder'
+import { MigrationAuto } from './Services/MigrationAuto'
+import { type Options, Sequelize, Transaction } from 'sequelize'
 
 export class DbContext {
   protected sequelize: Sequelize
@@ -30,16 +30,17 @@ export class DbContext {
     throw new Error('OnModelCreating method must be implemented.')
   }
 
-  // Synchronize the database
+  // Synchronize the database using DBFirst or CodeFirst
   public async Sync(
-    type: 'Database' | 'Code',
     sequelize: Sequelize,
     options?: AutoOptions
   ): Promise<void> {
-    if (type === 'Database') {
+    if (options?.migrationMode === 'Database') {
       if (!options) throw new Error('Options must be provided.')
-      await new MigrationBuilder(sequelize, options).build()
-    } else if (type === 'Code') {
+      await new MigrationAuto(sequelize, options).RunAsync()
+    } else if (options?.migrationMode === 'Code') {
+      await this.sequelize.sync({ alter: true })
+    } else {
       await this.sequelize.sync({ alter: true })
     }
   }

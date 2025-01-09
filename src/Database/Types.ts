@@ -108,9 +108,6 @@ export function qNameJoin(schema: string | undefined, table: string | undefined)
   return !!schema ? schema + '.' + table : table as string
 }
 
-/** Language of output model files */
-export declare type LangOption = 'es5' | 'es6' | 'esm' | 'ts';
-
 /** "c" camelCase |
  * "l" lower_case |
  * "o" original (db) |
@@ -150,8 +147,6 @@ export interface AutoOptions {
   host?: string;
   /** Number of spaces or tabs to indent (default 2) */
   indentation?: number;
-  /** Model language */
-  lang?: LangOption;
   /** Whether to avoid creating alias property in relations */
   noAlias?: boolean;
   /** Whether to skip writing index information */
@@ -186,6 +181,8 @@ export interface AutoOptions {
   pkSuffixes?: string[];
   /** Use `sequelize.define` instead of `init` for model initialization.  See issues #527, #559, #573 */
   useDefine: boolean;
+  /** Migration Mode: Using DBFirst or CodeFirst */
+  migrationMode?: 'Database' | 'Code';
 }
 
 export type TSField = { special: string[]; elementType: string; } & ColumnDescription;
@@ -233,9 +230,9 @@ export function recase(opt: CaseOption | CaseFileOption | undefined, val: string
 
 const tsNames = ['DataTypes', 'Model', 'Optional', 'Sequelize']
 
-export function MakeTableName(opt: CaseOption | undefined, tableNameOrig: string | null, singular = false, lang = 'es5') {
+export function MakeTableName(opt: CaseOption | undefined, tableNameOrig: string | null, singular = false) {
   let name = recase(opt, tableNameOrig, singular)
-  if (ReservedKeywords.includes(name) || (lang == 'ts' && tsNames.includes(name))) {
+  if (ReservedKeywords.includes(name) || (tsNames.includes(name))) {
     name += '_'
   }
   return name

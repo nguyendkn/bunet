@@ -15,7 +15,7 @@ services.AddOpenTelemetry({
   DbContext.OnConfiguring(AppDbContext, {
     dialect: 'postgres',
     host: 'localhost',
-    port: port,
+    port: 5433,
     username: 'postgres',
     password: 'postgres',
     database: 'postgres'
@@ -24,4 +24,4 @@ services.AddOpenTelemetry({
 services.AddSingleton(UserService.name, UserService)
 
 const app = builder.Build(__dirname)
-app.Run(3001)
+app.Run(port)
