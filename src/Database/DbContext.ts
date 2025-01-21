@@ -1,9 +1,13 @@
+import type { AutoOptions } from './Types'
+import { MigrationAuto } from './Services/MigrationAuto'
 import { type Options, Sequelize, Transaction } from 'sequelize'
 
 export class DbContext {
   protected sequelize: Sequelize
+  protected options: Options
 
   constructor(options: Options) {
+    this.options = options
     this.sequelize = new Sequelize(options)
     this.OnModelCreating(this.sequelize)
   }
@@ -18,7 +22,7 @@ export class DbContext {
     instance: new (options: Options) => T,
     options: Options
   ): T {
-    return new instance(options); // Tạo instance từ class được truyền vào
+    return new instance(options) // Tạo instance từ class được truyền vào
   }
 
   // Hook for setting up models (to be overridden in derived classes)
@@ -26,9 +30,19 @@ export class DbContext {
     throw new Error('OnModelCreating method must be implemented.')
   }
 
-  // Synchronize the database
-  public async Sync(): Promise<void> {
-    await this.sequelize.sync({ alter: true })
+  // Synchronize the database using DBFirst or CodeFirst
+  public async Sync(
+    sequelize: Sequelize,
+    options?: AutoOptions
+  ): Promise<void> {
+    if (options?.migrationMode === 'Database') {
+      if (!options) throw new Error('Options must be provided.')
+      await new MigrationAuto(sequelize, options).RunAsync()
+    } else if (options?.migrationMode === 'Code') {
+      await this.sequelize.sync({ alter: true })
+    } else {
+      await this.sequelize.sync({ alter: true })
+    }
   }
 
   // Get the Sequelize instance
