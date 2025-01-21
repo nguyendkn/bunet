@@ -1,4 +1,5 @@
-import { type GroupedCountResultItem, Model, type ModelStatic, type Optional } from 'sequelize'
+import { type GroupedCountResultItem, Model, type ModelStatic, type Optional, Transaction } from 'sequelize'
+import { Logger } from '../Logging'
 
 type ModelType<T extends Model> = typeof Model & {
   new(values?: Optional<T['_attributes'], keyof T['_creationAttributes']>, options?: any): T;
@@ -12,6 +13,31 @@ export class DbSet<T extends Model> {
       throw new Error('Invalid model provided to DbSet.')
     }
     this.model = model
+  }
+
+  public async Upsert(data: Partial<T['_creationAttributes']>, transaction?: Transaction): Promise<{
+    type: 'created' | 'updated' | 'exception'
+    record: T | null | undefined
+  }> {
+    try {
+      const values = data as T['_creationAttributes']
+
+      const [record, created] = await this.model.upsert(values, {
+        returning: true,
+        transaction
+      })
+
+      return {
+        type: created ? 'created' : 'updated',
+        record
+      }
+    } catch (error: any) {
+      Logger.Error('Error in Upsert: {0}', error.message)
+      return {
+        type: 'exception',
+        record: null
+      }
+    }
   }
 
   public async FindAll(options?: any): Promise<T[]> {
