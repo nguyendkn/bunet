@@ -5,7 +5,7 @@ import {
   qNameSplit,
   MakeTableName,
   singularize,
-  recase,
+  reCase,
   qNameJoin,
   pluralize
 } from '../Types'
@@ -80,7 +80,7 @@ export class MigrationGenerator {
       needed.forEach(fkTable => {
         const set = associations.needed[fkTable]
         const [fkSchema, fkTableName] = qNameSplit(fkTable)
-        const filename = recase(this.options.caseFile, fkTableName, this.options.singularize)
+        const filename = reCase(this.options.caseFile, fkTableName, this.options.singularize)
         str += `import type { ${Array.from(set.values()).sort().join(', ')} } from './${filename}';\n`
       })
 
@@ -90,14 +90,14 @@ export class MigrationGenerator {
       const primaryKeys = this.GetTypeScriptPrimaryKeys(table)
 
       if (primaryKeys.length) {
-        str += `export type #TABLE#Pk = ${primaryKeys.map((k) => `"${recase(this.options.caseProp, k)}"`).join(' | ')};\n`
+        str += `export type #TABLE#Pk = ${primaryKeys.map((k) => `"${reCase(this.options.caseProp, k)}"`).join(' | ')};\n`
         str += `export type #TABLE#Id = #TABLE#[#TABLE#Pk];\n`
       }
 
       const creationOptionalFields = this.GetTypeScriptCreationOptionalFields(table)
 
       if (creationOptionalFields.length) {
-        str += `export type #TABLE#OptionalAttributes = ${creationOptionalFields.map((k) => `"${recase(this.options.caseProp, k)}"`).join(' | ')};\n`
+        str += `export type #TABLE#OptionalAttributes = ${creationOptionalFields.map((k) => `"${reCase(this.options.caseProp, k)}"`).join(' | ')};\n`
         str += 'export type #TABLE#CreationAttributes = Optional<#TABLE#Attributes, #TABLE#OptionalAttributes>;\n\n'
       } else {
         str += 'export type #TABLE#CreationAttributes = #TABLE#Attributes;\n\n'
@@ -224,7 +224,7 @@ export class MigrationGenerator {
       fieldObj.foreignKey = foreignKey
     }
 
-    const fieldName = recase(this.options.caseProp, field)
+    const fieldName = reCase(this.options.caseProp, field)
     let str = this.QuoteName(fieldName) + ': {\n'
 
     const quoteWrapper = '"'
@@ -661,7 +661,7 @@ export class MigrationGenerator {
     let str = ''
     fields.forEach(field => {
       if (!this.options.skipFields || !this.options.skipFields.includes(field)) {
-        const name = this.QuoteName(recase(this.options.caseProp, field))
+        const name = this.QuoteName(reCase(this.options.caseProp, field))
         const isOptional = this.GetTypeScriptFieldOptional(table, field)
         str += `${sp}${name}${isOptional ? '?' : notNull}: ${this.GetTypeScriptType(table, field)};\n`
       }
@@ -723,8 +723,8 @@ export class MigrationGenerator {
     if (additional.timestamps === false) {
       return false
     }
-    return ((!additional.createdAt && recase('c', field) === 'createdAt') || additional.createdAt === field)
-      || ((!additional.updatedAt && recase('c', field) === 'updatedAt') || additional.updatedAt === field)
+    return ((!additional.createdAt && reCase('c', field) === 'createdAt') || additional.createdAt === field)
+      || ((!additional.updatedAt && reCase('c', field) === 'updatedAt') || additional.updatedAt === field)
   }
 
   private IsParanoidField(field: string) {
@@ -732,7 +732,7 @@ export class MigrationGenerator {
     if (additional.timestamps === false || additional.paranoid === false) {
       return false
     }
-    return ((!additional.deletedAt && recase('c', field) === 'deletedAt') || additional.deletedAt === field)
+    return ((!additional.deletedAt && reCase('c', field) === 'deletedAt') || additional.deletedAt === field)
   }
 
   private isIgnoredField(field: string) {

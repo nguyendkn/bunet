@@ -90,9 +90,16 @@ export const PostgresDialectOptions: DialectOptions = {
    * @param {Object} record The row entry from getForeignKeysQuery.
    * @return {boolean}
    */
-  isSerialKey: (record: { extra: string, defaultValue: string, generation: string }) => {
-    const isSequence = (value: string) => !!value && ((_.startsWith(value, 'nextval') && _.includes(value, '_seq') && _.includes(value, '::regclass')) || (value === 'ALWAYS' || value === 'BY DEFAULT'))
-    return _.isObject(record) && (isSequence(record.extra) || isSequence(record.defaultValue) || isSequence(record.generation))
+  isSerialKey: (record: { extra: string; defaultValue: string; generation: string }) => {
+    const isSequence = (value: string) =>
+      !!value &&
+      ((_.startsWith(value, 'nextval') && _.includes(value, '_seq') && _.includes(value, '::regclass')) ||
+        value === 'ALWAYS' ||
+        value === 'BY DEFAULT')
+    return (
+      _.isObject(record) &&
+      (isSequence(record.extra) || isSequence(record.defaultValue) || isSequence(record.generation))
+    )
   },
 
   /**
@@ -115,7 +122,7 @@ export const PostgresDialectOptions: DialectOptions = {
    * @param {String} schemaName Optional. The schema from which to list views.
    * @return {String}
    */
-  showViewsQuery: (schemaName?: string) => {
+  showViewsQuery: (schemaName?: string): string => {
     return `SELECT table_name, table_schema
             FROM information_schema.tables
             WHERE table_type = 'VIEW'
@@ -130,8 +137,9 @@ export const PostgresDialectOptions: DialectOptions = {
    * @param {String} schemaName Optional. The schema name.
    * @return {String} The SQL query.
    */
-  showElementTypeQuery: (tableName: string, schemaName?: string) => {
-    return `SELECT c.column_name,
+  showElementTypeQuery: (tableName: string, schemaName?: string): string => {
+    return (
+      `SELECT c.column_name,
                    c.data_type,
                    c.udt_name,
                    e.data_type                                  AS element_type,
@@ -146,6 +154,7 @@ export const PostgresDialectOptions: DialectOptions = {
                                    = (e.object_catalog, e.object_schema, e.object_name, e.object_type,
                                       e.collection_type_identifier))
             WHERE c.table_name = '${tableName}'` + (schemaName ? ` AND c.table_schema = '${schemaName}'` : '')
+    )
   },
 
   /**
@@ -155,13 +164,15 @@ export const PostgresDialectOptions: DialectOptions = {
    * @param {String} schemaName Optional. The schema name.
    * @return {String} The SQL query.
    */
-  showGeographyTypeQuery: (tableName: string, schemaName?: string) => {
-    return `SELECT f_geography_column AS column_name,
+  showGeographyTypeQuery: (tableName: string, schemaName?: string): string => {
+    return (
+      `SELECT f_geography_column AS column_name,
                    type               AS udt_name,
                    srid               AS data_type,
                    coord_dimension    AS element_type
             FROM geography_columns
             WHERE f_table_name = '${tableName}'` + (schemaName ? ` AND f_table_schema = '${schemaName}'` : '')
+    )
   },
 
   /**
@@ -171,12 +182,14 @@ export const PostgresDialectOptions: DialectOptions = {
    * @param {String} schemaName Optional. The schema name.
    * @return {String} The SQL query.
    */
-  showGeometryTypeQuery: (tableName: string, schemaName?: string) => {
-    return `SELECT f_geometry_column AS column_name,
+  showGeometryTypeQuery: (tableName: string, schemaName?: string): string => {
+    return (
+      `SELECT f_geometry_column AS column_name,
                    type              AS udt_name,
                    srid              AS data_type,
                    coord_dimension   AS element_type
             FROM geometry_columns
             WHERE f_table_name = '${tableName}'` + (schemaName ? ` AND f_table_schema = '${schemaName}'` : '')
+    )
   }
 }

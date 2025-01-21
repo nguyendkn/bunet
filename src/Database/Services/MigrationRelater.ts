@@ -6,7 +6,7 @@ import {
   pluralize,
   qNameJoin,
   qNameSplit,
-  recase,
+  reCase,
   singularize,
   TableData
 } from '../Types'
@@ -60,12 +60,12 @@ export class MigrationRelater {
 
     const [schemaName, tableName] = qNameSplit(table)
     const schema = schemaName as string
-    const modelName = recase(this.caseModel, tableName, this.singularize)
+    const modelName = reCase(this.caseModel, tableName, this.singularize)
 
-    const targetModel = recase(this.caseModel, spec.foreignSources.target_table as string, this.singularize)
+    const targetModel = reCase(this.caseModel, spec.foreignSources.target_table as string, this.singularize)
     const alias = this.getAlias(fkFieldName, spec.foreignSources.target_table as string, spec.foreignSources.source_table as string)
     const childAlias = this.getChildAlias(fkFieldName, spec.foreignSources.source_table as string, spec.foreignSources.target_table as string)
-    const sourceProp = recase(this.caseProp, fkFieldName)
+    const sourceProp = reCase(this.caseProp, fkFieldName)
 
     // use "hasOne" cardinality if this FK is also a single-column Primary or Unique key; else "hasMany"
     const isOne = ((spec.isPrimaryKey && !_.some(fkFields, f => f.isPrimaryKey && f.source_column !== fkFieldName) ||
@@ -88,9 +88,9 @@ export class MigrationRelater {
       const otherKeys = _.filter(fkFields, k => k.isForeignKey && k.isPrimaryKey && k.source_column !== fkFieldName)
       if (otherKeys.length === 1) {
         const otherKey = otherKeys[0]
-        const otherModel = recase(this.caseModel, otherKey.foreignSources.target_table as string, this.singularize)
+        const otherModel = reCase(this.caseModel, otherKey.foreignSources.target_table as string, this.singularize)
         const otherProp = this.getAlias(otherKey.source_column, otherKey.foreignSources.target_table as string, otherKey.foreignSources.source_table as string, true)
-        const otherId = recase(this.caseProp, otherKey.source_column)
+        const otherId = reCase(this.caseProp, otherKey.source_column)
 
         this.relations.push({
           parentId: sourceProp,
@@ -129,7 +129,7 @@ export class MigrationRelater {
       }
       this.usedChildNames.add(targetModel + '.' + singularize(name))
     }
-    return recase(this.caseProp, name, true)
+    return reCase(this.caseProp, name, true)
   }
 
   /** Convert foreign key name into alias name for hasMany/hasOne relations */
@@ -143,7 +143,7 @@ export class MigrationRelater {
     // singularize in case one column name is the singularized form of another column in the same model
     name = singularize(name)
     this.usedChildNames.add(targetModel + '.' + name)
-    return recase(this.caseProp, name, true)
+    return reCase(this.caseProp, name, true)
   }
 
   private trimId(name: string) {

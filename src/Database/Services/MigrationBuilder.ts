@@ -61,20 +61,12 @@ export class MigrationBuilder {
   }
 
   private async getViews(): Promise<any[]> {
-    const vschema = this.dialect.name === 'mysql' ? this.sequelize.getDatabaseName() : this.schema
-    const showViewsSql = this.dialect.showViewsQuery(vschema)
+    const showViewsSql = this.dialect.showViewsQuery(this.dialect.name === 'mysql' ? this.sequelize.getDatabaseName() : this.schema)
     return this.executeQuery<string>(showViewsSql)
   }
 
 
   private async processTables(tableResult: any[]) {
-    // tables is an array of either three things:
-    // * objects with two properties table_name and table_schema
-    // * objects with two properties tableName and tableSchema
-    // * objects with a single name property
-    // The first happens for dialects which support schemas (e.g. mssql, postgres).
-    // The second happens for dialects which do not support schemas (e.g. sqlite).
-
     let tables = _.map(tableResult, t => {
       return {
         table_name: t.table_name || t.tableName || t.name || String(t),
@@ -84,8 +76,8 @@ export class MigrationBuilder {
 
     // include/exclude tables
     if (this.includeTables) {
-      const optables = mapOptionTables(this.includeTables, this.schema)
-      tables = _.intersectionWith(tables, optables, isTableEqual)
+      const optionTables = mapOptionTables(this.includeTables, this.schema)
+      tables = _.intersectionWith(tables, optionTables, isTableEqual)
     } else if (this.skipTables) {
       const skipTables = mapOptionTables(this.skipTables, this.schema)
       tables = _.differenceWith(tables, skipTables, isTableEqual)
@@ -170,9 +162,9 @@ export class MigrationBuilder {
       // for postgres array or user-defined types, get element type
       if (this.dialect.showElementTypeQuery && (_.some(fields, { type: 'ARRAY' }) || _.some(fields, { type: 'USER-DEFINED' }))) {
         // get the subtype of the fields
-        const stquery = this.dialect.showElementTypeQuery(table.table_name, table.table_schema)
+        const elementTypeQuery = this.dialect.showElementTypeQuery(table.table_name, table.table_schema)
 
-        const elementTypes = await this.executeQuery<ColumnElementType>(stquery)
+        const elementTypes = await this.executeQuery<ColumnElementType>(elementTypeQuery)
         // add element type to "elementType" property of field
         elementTypes.forEach(et => {
           const field = fields[et.column_name] as Field
@@ -188,11 +180,11 @@ export class MigrationBuilder {
           }
         })
 
-        // TODO - in postgres, query geography_columns and geometry_columns for detail type and srid
+        // TODO - in postgres, query geography_columns and geometry_columns for detail type
         if (elementTypes.some(et => et.udt_name === 'geography') && this.dialect.showGeographyTypeQuery) {
-          const gquery = this.dialect.showGeographyTypeQuery(table.table_name, table.table_schema)
-          const gtypes = await this.executeQuery<ColumnElementType>(gquery)
-          gtypes.forEach(gt => {
+          const geographyTypeQuery = this.dialect.showGeographyTypeQuery(table.table_name, table.table_schema)
+          const columnElementTypes = await this.executeQuery<ColumnElementType>(geographyTypeQuery)
+          columnElementTypes.forEach(gt => {
             const fld = fields[gt.column_name] as Field
             if (fld.type === 'geography') {
               fld.elementType = `'${gt.udt_name}', ${gt.data_type}`
@@ -201,9 +193,9 @@ export class MigrationBuilder {
         }
 
         if (elementTypes.some(et => et.udt_name === 'geometry') && this.dialect.showGeometryTypeQuery) {
-          const gquery = this.dialect.showGeometryTypeQuery(table.table_name, table.table_schema)
-          const gtypes = await this.executeQuery<ColumnElementType>(gquery)
-          gtypes.forEach(gt => {
+          const geometryTypeQuery = this.dialect.showGeometryTypeQuery(table.table_name, table.table_schema)
+          const columnElementTypes = await this.executeQuery<ColumnElementType>(geometryTypeQuery)
+          columnElementTypes.forEach(gt => {
             const fld = fields[gt.column_name] as Field
             if (fld.type === 'geometry') {
               fld.elementType = `'${gt.udt_name}', ${gt.data_type}`
@@ -215,9 +207,9 @@ export class MigrationBuilder {
 
       // for mssql numeric types, get the precision. QueryInterface.describeTable does not return it
       if (this.dialect.showPrecisionQuery && (_.some(fields, { type: 'DECIMAL' }) || _.some(fields, { type: 'NUMERIC' }))) {
-        const prequery = this.dialect.showPrecisionQuery(table.table_name, table.table_schema)
-        const columnPrec = await this.executeQuery<ColumnPrecision>(prequery)
-        columnPrec.forEach(cp => {
+        const precisionQuery = this.dialect.showPrecisionQuery(table.table_name, table.table_schema)
+        const columnPrecisions = await this.executeQuery<ColumnPrecision>(precisionQuery)
+        columnPrecisions.forEach(cp => {
           const fld = fields[cp.column_name] as Field
           if (cp.numeric_precision && (fld.type === 'DECIMAL' || fld.type === 'NUMERIC')) {
             fld.type = `${fld.type}(${cp.numeric_precision},${cp.numeric_scale})`
@@ -230,10 +222,10 @@ export class MigrationBuilder {
 
       // if there is no primaryKey, and `id` field exists, then make id the primaryKey (#480)
       if (!_.some(fields, { primaryKey: true })) {
-        const idname = _.keys(fields).find(f => f.toLowerCase() === 'id')
-        const idfield = idname && fields[idname]
-        if (idfield) {
-          idfield.primaryKey = true
+        const fieldId = _.keys(fields).find(f => f.toLowerCase() === 'id')
+        const descriptionFieldId = fieldId && fields[fieldId]
+        if (descriptionFieldId) {
+          descriptionFieldId.primaryKey = true
         }
       }
 

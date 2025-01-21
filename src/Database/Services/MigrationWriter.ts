@@ -14,7 +14,7 @@ import {
   MakeTableName,
   pluralize,
   qNameSplit,
-  recase,
+  reCase,
   TableData
 } from '@/bunet/core'
 
@@ -78,7 +78,7 @@ export class MigrationWriter {
 
   private createFile(table: string) {
     const [schemaName, tableName] = qNameSplit(table)
-    const fileName = recase(this.options.caseFile, tableName, this.options.singularize)
+    const fileName = reCase(this.options.caseFile, tableName, this.options.singularize)
     const filePath = path.join(this.options.directory, fileName + '.ts')
 
     return this.writeFile(filePath, this.createModelFileContent(table, tableName as string, fileName))
@@ -172,7 +172,7 @@ export class MigrationWriter {
 
     this.relations.forEach(rel => {
       if (rel.isM2M) {
-        const asprop = recase(this.options.caseProp, pluralize(rel.childProp))
+        const asprop = reCase(this.options.caseProp, pluralize(rel.childProp))
         str += `${sp}${rel.parentModel}.belongsToMany(${rel.childModel}, { as: '${asprop}', through: ${rel.joinModel}, foreignKey: "${rel.parentId}", otherKey: "${rel.childId}" });\n`
       }
     })
@@ -186,12 +186,12 @@ export class MigrationWriter {
 
     this.relations.forEach(rel => {
       if (!rel.isM2M) {
-        const asParentProp = recase(this.options.caseProp, rel.parentProp)
+        const asParentProp = reCase(this.options.caseProp, rel.parentProp)
         const bAlias = this.options.noAlias ? '' : `as: "${asParentProp}", `
         str += `${sp}${rel.childModel}.belongsTo(${rel.parentModel}, { ${bAlias}foreignKey: "${rel.parentId}"});\n`
 
         const hasRel = rel.isOne ? 'hasOne' : 'hasMany'
-        const asChildProp = recase(this.options.caseProp, rel.childProp)
+        const asChildProp = reCase(this.options.caseProp, rel.childProp)
         const hAlias = this.options.noAlias ? '' : `as: "${asChildProp}", `
         str += `${sp}${rel.parentModel}.${hasRel}(${rel.childModel}, { ${hAlias}foreignKey: "${rel.parentId}"});\n`
       }
@@ -222,7 +222,7 @@ export class MigrationWriter {
 
   private createImportStatements(tables: string[]) {
     return tables.map(t => {
-      const fileName = recase(this.options.caseFile, t, this.options.singularize)
+      const fileName = reCase(this.options.caseFile, t, this.options.singularize)
       const modelName = MakeTableName(this.options.caseModel, t, this.options.singularize)
       return `
         import { ${modelName} as _${modelName} } from "./${fileName}";

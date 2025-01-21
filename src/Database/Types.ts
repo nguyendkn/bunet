@@ -94,7 +94,7 @@ export class TableData {
   }
 }
 
-/** Split schema.table into [schema, table] */
+/** Split schema.Table into [schema, table] */
 export function qNameSplit(qname: string) {
   if (qname.indexOf('.') > 0) {
     const [schemaName, tableNameOrig] = qname.split('.')
@@ -103,7 +103,7 @@ export function qNameSplit(qname: string) {
   return [null, qname]
 }
 
-/** Get combined schema.table name */
+/** Get combined schema.Table name */
 export function qNameJoin(schema: string | undefined, table: string | undefined) {
   return !!schema ? schema + '.' + table : table as string
 }
@@ -203,7 +203,7 @@ export function singularize(s: string) {
 }
 
 /** Change casing of val string according to opt [c|l|o|p|u]  */
-export function recase(opt: CaseOption | CaseFileOption | undefined, val: string | null, singular = false) {
+export function reCase(opt: CaseOption | CaseFileOption | undefined, val: string | null, singular = false) {
   if (singular && val) {
     val = singularize(val)
   }
@@ -231,7 +231,7 @@ export function recase(opt: CaseOption | CaseFileOption | undefined, val: string
 const tsNames = ['DataTypes', 'Model', 'Optional', 'Sequelize']
 
 export function MakeTableName(opt: CaseOption | undefined, tableNameOrig: string | null, singular = false) {
-  let name = recase(opt, tableNameOrig, singular)
+  let name = reCase(opt, tableNameOrig, singular)
   if (ReservedKeywords.includes(name) || (tsNames.includes(name))) {
     name += '_'
   }
