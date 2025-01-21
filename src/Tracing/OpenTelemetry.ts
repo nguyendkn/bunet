@@ -26,16 +26,16 @@ export class OpenTelemetry {
     // Start Prometheus metrics server
     this.prometheusExporter
       .startServer()
-      .then(() => {
-        Logger.Information(
+      .then(async () => {
+        await Logger.Instance().Information(
           'Prometheus metrics server running at {0}://{1}:{2}/metrics',
           configs.protocol,
           configs.host,
           configs.port
         )
       })
-      .catch((error) => {
-        Logger.Error('Failed to start Prometheus server:', error)
+      .catch(async (error) => {
+        await Logger.Instance().Error('Failed to start Prometheus server:', error)
       })
 
     // Initialize MeterProvider and attach PrometheusExporter

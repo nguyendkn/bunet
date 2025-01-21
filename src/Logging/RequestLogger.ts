@@ -6,7 +6,9 @@ export async function RequestLogger(request: Request, next: () => Promise<Respon
   const response = await next()
   const duration = Date.now() - start
   OpenTelemetry.RecordRequestMetrics(request.url, duration)
-  Logger.Information(`[${new Date().toISOString()}] ${request.method} ${request.url} - ${response.status} (${duration}ms)`)
+  await Logger.Instance().Information(
+    `[${new Date().toISOString()}] ${request.method} ${request.url} - ${response.status} (${duration}ms)`
+  )
 
   return response
 }

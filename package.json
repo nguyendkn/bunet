@@ -33,6 +33,7 @@
     "@opentelemetry/sdk-trace-base": "^1.30.0",
     "@opentelemetry/sdk-trace-node": "^1.30.0",
     "pg": "^8.13.1",
+    "prettier": "^3.4.2",
     "reflect-metadata": "^0.2.2",
     "sequelize": "^6.37.5"
   },

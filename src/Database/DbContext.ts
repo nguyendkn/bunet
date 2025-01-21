@@ -18,10 +18,7 @@ export class DbContext {
    * @param options - Options for Sequelize initialization.
    * @returns A new instance of the derived DbContext class.
    */
-  static OnConfiguring<T extends DbContext>(
-    instance: new (options: Options) => T,
-    options: Options
-  ): T {
+  static OnConfiguring<T extends DbContext>(instance: new (options: Options) => T, options: Options): T {
     return new instance(options) // Tạo instance từ class được truyền vào
   }
 
@@ -31,10 +28,7 @@ export class DbContext {
   }
 
   // Synchronize the database using DBFirst or CodeFirst
-  public async Sync(
-    sequelize: Sequelize,
-    options?: AutoOptions
-  ): Promise<void> {
+  public async Sync(sequelize: Sequelize, options?: AutoOptions): Promise<void> {
     if (options?.migrationMode === 'Database') {
       if (!options) throw new Error('Options must be provided.')
       await new MigrationAuto(sequelize, options).RunAsync()
